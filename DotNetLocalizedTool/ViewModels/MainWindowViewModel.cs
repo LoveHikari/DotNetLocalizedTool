@@ -21,18 +21,16 @@ namespace DotNetLocalizedTool.ViewModels
     {
         public Models.MainWindowModel Model { get; set; }
 
-        private List<string> _pathList;
+
         private IDictionary<string, IDictionary<string, string>> _languageLinkList;
 
         public MainWindowViewModel()
         {
             this.Model = new MainWindowModel();
+            Model.Packs = new List<string>();
 
-            _pathList = new List<string>()
-            {
-                @"C:\Program Files\dotnet\packs\Microsoft.NETCore.App.Ref",
-                @"C:\Program Files\dotnet\packs\Microsoft.WindowsDesktop.App.Ref"
-            };
+            _languageLinkList = new Dictionary<string, IDictionary<string, string>>();
+
         }
         /// <summary>
         /// 窗口启动时
@@ -43,62 +41,25 @@ namespace DotNetLocalizedTool.ViewModels
             {
                 return new DelegateCommand<object>(async delegate (object obj)
                 {
-                    Model.Versions = new List<string>();
+                    //Model.Versions = new List<string>();
+                    Model.CurrentVersion = SystemHelper.RunCmd("dotnet --version").Split(System.Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)[0];  // 当前版本
+                    //string[] sdks = SystemHelper.RunCmd("dotnet --list-sdks").Split(System.Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
 
-                    var dirs = new DirectoryInfo(_pathList[0]).GetDirectories();
-                    foreach (var dir in dirs)
-                    {
-                        Model.Versions.Add(dir.Name.Split('-')[0]);
-                    }
+                    //foreach (var sdk in sdks)
+                    //{
+                    //    Model.Versions.Add(sdk.Split(' ')[0]);
+                    //}
 
-                    _languageLinkList = await GetLanguageLinkList();
+                    //Model.CurrentVersion = currentVersion;
+
+                    //_languageLinkList = await GetLanguageLinkList();
+                    //VersionSelectionChangedCommand.Execute(currentVersion);
+                    GetPackList();
+                    GetLanguageLinkList();
                 });
             }
         }
-        /// <summary>
-        /// 选择版本命令
-        /// </summary>
-        public ICommand VersionSelectionChangedCommand
-        {
-            get
-            {
-                return new DelegateCommand<object>(delegate (object obj)
-                {
-                    if (_languageLinkList != null)
-                    {
-                        string version = obj.ToString();
-                        var packs = new List<string>();
 
-                        foreach (string path in _pathList)
-                        {
-                            var dir = new DirectoryInfo(path).GetDirectories(version + "*")[0].FullName;
-                            dir = System.IO.Path.Combine(dir, "ref");
-                            dir = new DirectoryInfo(dir).GetDirectories()[0].FullName;
-
-                            packs.Add(dir);
-                        }
-                        Model.Packs = packs;
-
-                        version = version.Substring(0, 3);
-                        if (_languageLinkList.ContainsKey(version))
-                        {
-                            Model.LanguageList = _languageLinkList[version].Keys.ToList();
-                        }
-                        else
-                        {
-                            var v = _languageLinkList.Keys.ToList();
-                            Model.LanguageList = _languageLinkList[v[^1]].Keys.ToList();
-                        }
-                        
-                    }
-                    else
-                    {
-                        MessageBox.Show("语言包未加载，请稍后！");
-                    }
-
-                });
-            }
-        }
         /// <summary>
         /// 应用命令
         /// </summary>
@@ -109,9 +70,9 @@ namespace DotNetLocalizedTool.ViewModels
                 return new DelegateCommand<object>(async delegate (object obj)
                 {
                     object[] objs = obj as object[];
-                    string version = objs[0].ToString();
-                    version = version.Substring(0, 3);
-                    string language = objs[1].ToString();
+
+                    var version = Model.CurrentVersion.Substring(0, 3);
+                    string language = objs[0].ToString();
 
                     string url;
                     if (_languageLinkList.ContainsKey(version))
@@ -128,40 +89,38 @@ namespace DotNetLocalizedTool.ViewModels
                     string fileName = Path.GetFileName(url);
                     string path = Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, fileName);
                     fileName = Path.GetFileNameWithoutExtension(url);
-                    A(fileName);
-                    //// 下载
-                    //ThreadPool.QueueUserWorkItem(async state =>
-                    //{
-                    //    IProgress<HttpDownloadProgress> progress = new Progress<HttpDownloadProgress>(progress =>
-                    //    {
-                    //        DispatcherHelper.CheckBeginInvokeOnUI(() =>
-                    //        {
-                    //            Model.DownloadProgress = progress.BytesReceived * 100.0 / progress.TotalBytesToReceive ?? 1;
-                    //        });
-                            
-                    //        if (progress.BytesReceived == progress.TotalBytesToReceive)
-                    //        {
-                    //            // 解压
-                    //            new ZipLibHelper().UnzipZip(path, System.AppDomain.CurrentDomain.BaseDirectory);
-                    //            // 覆盖
-                    //            path = Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, fileName, fileName, _pathList[0]);
 
-                    //            MessageBox.Show("完成");
-                    //        }
-                    //    });
-                    //    await new HttpClientExtensions().GetByteArrayAsync(url, path, progress, CancellationToken.None);
-                    //});
-                    
+                    // 下载
+                    ThreadPool.QueueUserWorkItem(async state =>
+                    {
+                        IProgress<HttpDownloadProgress> progress = new Progress<HttpDownloadProgress>(progress =>
+                        {
+                            DispatcherHelper.CheckBeginInvokeOnUI(() =>
+                            {
+                                Model.DownloadProgress = progress.BytesReceived * 100.0 / progress.TotalBytesToReceive ?? 1;
+                            });
 
-
+                            if (progress.BytesReceived == progress.TotalBytesToReceive)
+                            {
+                                // 解压
+                                new ZipLibHelper().UnzipZip(path, System.AppDomain.CurrentDomain.BaseDirectory);
+                                // 覆盖
+                                CopyDirectory(fileName);
+                                DeleteDirectory(fileName);
+                                MessageBox.Show("完成");
+                            }
+                        });
+                        await new HttpClient().GetByteArrayAsync(url, path, progress, CancellationToken.None);
+                    });
 
                 });
             }
         }
-
-        private async Task<IDictionary<string, IDictionary<string, string>>> GetLanguageLinkList()
+        /// <summary>
+        /// 获得语言包列表
+        /// </summary>
+        private async void GetLanguageLinkList()
         {
-            IDictionary<string, IDictionary<string, string>> dic = new Dictionary<string, IDictionary<string, string>>();
             string url = "https://dotnet.microsoft.com/download/intellisense";
             HttpClientHelper helper = new HttpClientHelper();
             string html = await helper.GetAsync(url);
@@ -183,20 +142,75 @@ namespace DotNetLocalizedTool.ViewModels
                     dic1.Add(title, href);
                 }
 
-                dic.Add(v, dic1);
+                _languageLinkList.Add(v, dic1);
             }
 
-            return dic;
+            var version = Model.CurrentVersion.Substring(0, 3);
+            if (_languageLinkList.ContainsKey(version))
+            {
+                Model.LanguageList = _languageLinkList[version].Keys.ToList();
+            }
+            else
+            {
+                var v = _languageLinkList.Keys.ToList();
+                Model.LanguageList = _languageLinkList[v[^1]].Keys.ToList();
+            }
         }
 
-        private void A(string fileName)
+        private void CopyDirectory(string fileName)
         {
             string path = Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, fileName, fileName, "Microsoft.NETCore.App.Ref");
             var dir1 = new DirectoryInfo(path).GetDirectories()[0].FullName;
             path = Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, fileName, fileName, "Microsoft.WindowsDesktop.App.Ref");
             var dir2 = new DirectoryInfo(path).GetDirectories()[0].FullName;
-            FileHelper.CopyDir2(dir1, Model.Packs[0]);
-            FileHelper.CopyDir2(dir2, Model.Packs[1]);
+
+            if (!System.IO.Directory.Exists(Path.Combine(Model.Packs[0], Path.GetFileName(dir1))))
+            {
+                FileHelper.CopyDirectory(dir1, Model.Packs[0]);
+            }
+            if (!System.IO.Directory.Exists(Path.Combine(Model.Packs[1], Path.GetFileName(dir2))))
+            {
+                FileHelper.CopyDirectory(dir2, Model.Packs[1]);
+            }
+        }
+
+        private void DeleteDirectory(string fileName)
+        {
+            string path = Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, fileName);
+            FileHelper.DeleteDirectory(path, true);
+            path += ".zip";
+            File.Delete(path);
+        }
+
+        private void GetPackList()
+        {
+            string[] sdks = SystemHelper.RunCmd("dotnet --list-runtimes").Split(System.Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
+            IDictionary<string, string> packDic = new Dictionary<string, string>()
+            {
+                {"Microsoft.NETCore.App", ""},
+                {"Microsoft.WindowsDesktop.App", ""}
+            };
+            IDictionary<string, string> pathList = new Dictionary<string, string>()
+            {
+                {"Microsoft.NETCore.App", @"C:\Program Files\dotnet\packs\Microsoft.NETCore.App.Ref"},
+                {"Microsoft.WindowsDesktop.App", @"C:\Program Files\dotnet\packs\Microsoft.WindowsDesktop.App.Ref"}
+            };
+            foreach (string sdk in sdks)
+            {
+                var s = sdk.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (packDic.Keys.Contains(s[0]))
+                {
+                    packDic[s[0]] = s[1];
+                }
+            }
+
+            
+            foreach (var path in pathList)
+            {
+                Model.Packs.Add(Path.Combine(path.Value, packDic[path.Key], "ref", "net" + packDic[path.Key].Substring(0, 3)));
+            }
+
+            Model.Packs.Add("");
         }
 
     }

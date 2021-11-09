@@ -1,8 +1,6 @@
-using System;
-using System.Collections.Generic;
 using Hikari.Common.Net.Http;
 using NSoup.Nodes;
-using Swashbuckle.AspNetCore.SwaggerGen;
+using System.Collections.Generic;
 using Xunit;
 using Xunit.Abstractions;
 

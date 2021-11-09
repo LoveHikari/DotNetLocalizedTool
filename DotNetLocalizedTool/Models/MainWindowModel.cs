@@ -12,12 +12,14 @@ namespace DotNetLocalizedTool.Models
             set { _packs = value; NotifyPropertyChanged(); }
         }
 
-        private List<string> _versions;  // 所有版本列表
-
-        public List<string> Versions
+        private string _currentVersion;  // 当前选中的sdk版本
+        /// <summary>
+        /// 当前选中的sdk版本
+        /// </summary>
+        public string CurrentVersion
         {
-            get => _versions;
-            set { _versions = value; NotifyPropertyChanged(); }
+            get => _currentVersion;
+            set { _currentVersion = value; NotifyPropertyChanged(); }
         }
 
         private List<string> _languageList;  // 语言列表
