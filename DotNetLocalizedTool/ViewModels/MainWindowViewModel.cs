@@ -12,6 +12,7 @@ using System.Windows.Input;
 using DotNetLocalizedTool.Models;
 using GalaSoft.MvvmLight.Threading;
 using Hikari.Common;
+using Hikari.Common.IO;
 using Hikari.Common.Net.Http;
 using NSoup.Nodes;
 
@@ -166,18 +167,18 @@ namespace DotNetLocalizedTool.ViewModels
 
             if (!System.IO.Directory.Exists(Path.Combine(Model.Packs[0], Path.GetFileName(dir1))))
             {
-                FileHelper.CopyDirectory(dir1, Model.Packs[0]);
+                DirectoryHelper.CopyDirectory(dir1, Model.Packs[0]);
             }
             if (!System.IO.Directory.Exists(Path.Combine(Model.Packs[1], Path.GetFileName(dir2))))
             {
-                FileHelper.CopyDirectory(dir2, Model.Packs[1]);
+                DirectoryHelper.CopyDirectory(dir2, Model.Packs[1]);
             }
         }
 
         private void DeleteDirectory(string fileName)
         {
             string path = Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, fileName);
-            FileHelper.DeleteDirectory(path, true);
+            DirectoryHelper.DeleteDirectory(path, true);
             path += ".zip";
             File.Delete(path);
         }
