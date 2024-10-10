@@ -2,7 +2,9 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
 	<ApplicationManifest>Properties\app.manifest</ApplicationManifest>
   </PropertyGroup>
@@ -12,8 +14,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Hikari.Common" Version="7.0.2" />
-    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.39" />
+    <PackageReference Include="Hikari.Common" Version="8.0.8" />
+    <PackageReference Include="Hikari.Mvvm" Version="1.0.1" />
+    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" />
     <PackageReference Include="NSoup.Standard" Version="2.0.1" />
     <PackageReference Include="MvvmLight.Threading" Version="5.4.1" />
   </ItemGroup>

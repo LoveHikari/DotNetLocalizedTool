@@ -14,6 +14,7 @@ using GalaSoft.MvvmLight.Threading;
 using Hikari.Common;
 using Hikari.Common.IO;
 using Hikari.Common.Net.Http;
+using Hikari.Mvvm.Command;
 using NSoup.Nodes;
 
 namespace DotNetLocalizedTool.ViewModels
@@ -70,15 +71,17 @@ namespace DotNetLocalizedTool.ViewModels
             {
                 return new DelegateCommand<object>(async delegate (object obj)
                 {
-                    object[] objs = obj as object[];
-
                     var version = Model.CurrentVersion.Substring(0, 3);
-                    string language = objs[0].ToString();
-
-                    string url;
-                    if (_languageLinkList.ContainsKey(version))
+                    string? language = obj.ToString();
+                    if (language == null)
                     {
-                        url = _languageLinkList[version][language];
+                        MessageBox.Show("请选择语言");
+                        return;
+                    }
+                    string url;
+                    if (_languageLinkList.TryGetValue(version, out var value))
+                    {
+                        url = value[language];
                     }
                     else
                     {
@@ -147,9 +150,9 @@ namespace DotNetLocalizedTool.ViewModels
             }
 
             var version = Model.CurrentVersion.Substring(0, 3);
-            if (_languageLinkList.ContainsKey(version))
+            if (_languageLinkList.TryGetValue(version, out var value))
             {
-                Model.LanguageList = _languageLinkList[version].Keys.ToList();
+                Model.LanguageList = value.Keys.ToList();
             }
             else
             {
