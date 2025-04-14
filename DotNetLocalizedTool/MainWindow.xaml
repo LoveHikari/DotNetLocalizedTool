@@ -4,12 +4,14 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:b="http://schemas.microsoft.com/xaml/behaviors"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:hc="https://handyorg.github.io/handycontrol"
     xmlns:local="clr-namespace:DotNetLocalizedTool"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:viewModels="clr-namespace:DotNetLocalizedTool.ViewModels"
     Title=".net 智能提示汉化"
     Width="785"
     Height="450"
+    hc:Dialog.Token="123"
     ResizeMode="CanMinimize"
     mc:Ignorable="d">
     <Window.DataContext>
@@ -98,12 +100,15 @@
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <!--  每个 ListBoxItem 显示的内容  -->
-                        <TextBlock DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ListBox}}" Text="{Binding Path=Content, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" ToolTip="{Binding Path=Text, RelativeSource={RelativeSource Mode=Self}}">
+                        <TextBlock
+                            DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                            Text="{Binding Path=Content, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
+                            ToolTip="{Binding Path=Text, RelativeSource={RelativeSource Mode=Self}}">
                             <TextBlock.ContextMenu>
                                 <ContextMenu>
                                     <MenuItem
                                         Command="{Binding PlacementTarget.DataContext.OpenDirectoryCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                        CommandParameter="{Binding Path= PlacementTarget.Text, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                        CommandParameter="{Binding Path=PlacementTarget.Text, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
                                         Header="打开目录" />
                                 </ContextMenu>
                             </TextBlock.ContextMenu>
@@ -111,26 +116,37 @@
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
-            <Button
+            <StackPanel
                 Grid.Row="2"
-                Height="30"
-                Margin="5,0,5,0"
-                HorizontalAlignment="Stretch"
-                Command="{Binding OpenDirectoryCommand}"
-                CommandParameter="{Binding SelectedValue, ElementName=comboBox1}"
-                Content="应用">
-                <!--<b:Interaction.Triggers>
-                    <b:EventTrigger EventName="Click">
-                        <b:InvokeCommandAction Command="{Binding ApplyCommand}" CommandParameter="{Binding SelectedValue, RelativeSource={RelativeSource AncestorType=ComboBox}}">
-                            <b:InvokeCommandAction.CommandParameter>
-                                <MultiBinding Converter="{StaticResource MultiValueConverter}">
-                                    <Binding ElementName="comboBox1" Path="SelectedValue"/>
-                                </MultiBinding>
-                            </b:InvokeCommandAction.CommandParameter>
-                        </b:InvokeCommandAction>
-                    </b:EventTrigger>
-                </b:Interaction.Triggers>-->
-            </Button>
+                HorizontalAlignment="Center"
+                Orientation="Horizontal">
+                <Button
+                    Height="30"
+                    Margin="5,0,5,0"
+                    HorizontalAlignment="Stretch"
+                    Command="{Binding ClearRuntimeCommand}"
+                    Content="清理" />
+                <Button
+                    Height="30"
+                    Margin="20,0,5,0"
+                    HorizontalAlignment="Stretch"
+                    Command="{Binding ApplyCommand}"
+                    CommandParameter="{Binding SelectedValue, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                    Content="应用">
+                    <b:Interaction.Triggers>
+                        <b:EventTrigger EventName="Click">
+                            <b:InvokeCommandAction Command="{Binding ApplyCommand}">
+                                <b:InvokeCommandAction.CommandParameter>
+                                    <MultiBinding>
+                                        <Binding Path="SelectedValue" RelativeSource="{RelativeSource AncestorType=ListBox}" />
+                                    </MultiBinding>
+                                </b:InvokeCommandAction.CommandParameter>
+                            </b:InvokeCommandAction>
+                        </b:EventTrigger>
+                    </b:Interaction.Triggers>
+                </Button>
+            </StackPanel>
+
             <ProgressBar
                 Grid.Row="3"
                 Height="20"

@@ -34,24 +34,29 @@ namespace DotNetLocalizedTool.ViewModels
         {
             get
             {
-                return new RelayCommand<object>(async delegate (object? obj)
+                return new AsyncRelayCommand<object>(async delegate (object? obj)
                 {
-                    //Model.Versions = new List<string>();
-                    Model.CurrentVersion = SystemHelper.RunCmd("dotnet --version").Split(System.Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)[0];  // 当前版本
-                    string[] sdks = SystemHelper.RunCmd("dotnet --list-sdks").Split(System.Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
-
-                    foreach (var sdk in sdks)
+                    DialogHelper.ShowLoading();
+                    await Task.Run(async () =>
                     {
-                        Model.SdkVersions.Add(sdk.Split(' ')[0]);
-                        Model.SdkVersions = new ObservableCollection<string>(Model.SdkVersions.Reverse());
-                    }
+                        //Model.Versions = new List<string>();
+                        Model.CurrentVersion = SystemHelper.RunCmd("dotnet --version").Split(System.Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)[0];  // 当前版本
+                        string[] sdks = SystemHelper.RunCmd("dotnet --list-sdks").Split(System.Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
 
-                    //Model.CurrentVersion = currentVersion;
+                        foreach (var sdk in sdks)
+                        {
+                            Model.SdkVersions.Add(sdk.Split(' ')[0]);
+                            Model.SdkVersions = new ObservableCollection<string>(Model.SdkVersions.Reverse());
+                        }
 
-                    //_languageLinkList = await GetLanguageLinkList();
-                    //VersionSelectionChangedCommand.Execute(currentVersion);
-                    GetPackList();
-                    await GetLanguageLinkList();
+                        //Model.CurrentVersion = currentVersion;
+
+                        //_languageLinkList = await GetLanguageLinkList();
+                        //VersionSelectionChangedCommand.Execute(currentVersion);
+                        GetPackList();
+                        await GetLanguageLinkList();
+                    });
+                    DialogHelper.CloseLoading();
                 });
             }
         }
@@ -63,7 +68,7 @@ namespace DotNetLocalizedTool.ViewModels
         {
             get
             {
-                return new RelayCommand<object>(async delegate (object obj)
+                return new AsyncRelayCommand<object>(async delegate (object? obj)
                 {
                     var version = Model.CurrentVersion.Substring(0, 3);
                     string? language = obj.ToString();
@@ -125,6 +130,33 @@ namespace DotNetLocalizedTool.ViewModels
             {
                 System.Diagnostics.Process.Start("explorer.exe", path);
             }
+        });
+        /// <summary>
+        /// 清理无用的运行时目录
+        /// </summary>
+        public ICommand ClearRuntimeCommand => new AsyncRelayCommand<object>(async obj =>
+        {
+            DialogHelper.ShowLoading();
+            await Task.Run(() =>
+            {
+                string[] strs = [@"C:\Program Files\dotnet\packs\Microsoft.NETCore.App.Ref", @"C:\Program Files\dotnet\packs\Microsoft.WindowsDesktop.App.Ref"];
+                foreach (var str in strs)
+                {
+                    var dirs = DirectoryHelper.FindDirectories(str);
+                    foreach (var dir in dirs)
+                    {
+                        var list = DirectoryHelper.FindDirectories(dir);
+                        if (list.Count < 3)
+                        {
+                            // 删除目录
+                            DirectoryHelper.DeleteDirectory(dir, true);
+                        }
+                    }
+                }
+            });
+
+            DialogHelper.CloseLoading();
+            
         });
 
         /// <summary>
@@ -210,7 +242,7 @@ namespace DotNetLocalizedTool.ViewModels
                 if (pathList.Keys.Contains(s[0]))
                 {
                     var path = Path.Combine(pathList[s[0]], s[1], "ref");
-                    var dirs = DirectoryHelper.FindAllDirectories(path);
+                    var dirs = DirectoryHelper.FindDirectories(path);
                     Model.Packs.Add(dirs[0]);
                 }
             }

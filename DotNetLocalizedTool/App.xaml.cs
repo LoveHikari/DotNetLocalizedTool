@@ -32,6 +32,7 @@ namespace DotNetLocalizedTool
             HandyControl.Controls.MessageBox.Show(e.Exception.Message, "UI线程全局异常", MessageBoxButton.OK, MessageBoxImage.Error);
             e.Handled = true;
             //throw e.Exception;
+            DialogHelper.CloseLoading();
         }
 
         /// <summary>
@@ -47,6 +48,7 @@ namespace DotNetLocalizedTool
                 HandyControl.Controls.MessageBox.Show(exception.Message, "非UI线程全局异常", MessageBoxButton.OK, MessageBoxImage.Error);
                 //LogHelper.WriteError(exception, "非UI线程全局异常");
                 //throw exception;
+                DialogHelper.CloseLoading();
             }
         }
     }
