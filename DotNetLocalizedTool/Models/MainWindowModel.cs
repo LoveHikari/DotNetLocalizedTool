@@ -1,40 +1,39 @@
-﻿using System.Collections.Generic;
-using Hikari.Mvvm;
+﻿using System.Collections.ObjectModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace DotNetLocalizedTool.Models
 {
-    public class MainWindowModel : NotificationObject
+    public partial class MainWindowModel : ObservableObject
     {
-        private List<string> _packs;  // 版本包路径列表
-
-        public List<string> Packs
+        public MainWindowModel()
         {
-            get => _packs;
-            set { _packs = value; NotifyPropertyChanged(); }
+            Packs = new ObservableCollection<string>();
+            SdkVersions = new ObservableCollection<string>();
+            LanguageList = new List<string>();
         }
+        [ObservableProperty]
+        private ObservableCollection<string> _packs;  // 版本包路径列表
 
-        private string _currentVersion;  // 当前选中的sdk版本
-        /// <summary>
-        /// 当前选中的sdk版本
-        /// </summary>
-        public string CurrentVersion
-        {
-            get => _currentVersion;
-            set { _currentVersion = value; NotifyPropertyChanged(); }
-        }
+        [ObservableProperty]
+        private ObservableCollection<string> _sdkVersions;  // sdk版本列表
+
+        [ObservableProperty]
+        private string _currentVersion;  // 当前sdk版本
+
 
         private List<string> _languageList;  // 语言列表
         public List<string> LanguageList
         {
             get => _languageList;
-            set { _languageList = value; NotifyPropertyChanged(); }
+            set { _languageList = value; OnPropertyChanged(); }
         }
-
+        [ObservableProperty]
+        private string _currentLanguage = "zh-CN";  // 当前选中的语言
         private double _downloadProgress;  // 下载进度
         public double DownloadProgress
         {
             get => _downloadProgress;
-            set { _downloadProgress = value; NotifyPropertyChanged(); }
+            set { _downloadProgress = value; OnPropertyChanged(); }
         }
     }
 }

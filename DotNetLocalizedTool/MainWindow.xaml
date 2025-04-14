@@ -8,63 +8,115 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:viewModels="clr-namespace:DotNetLocalizedTool.ViewModels"
     Title=".net 智能提示汉化"
-    Width="410"
-    Height="240"
+    Width="785"
+    Height="450"
     ResizeMode="CanMinimize"
     mc:Ignorable="d">
     <Window.DataContext>
         <viewModels:MainWindowViewModel />
     </Window.DataContext>
-    <Window.Resources>
-        <ResourceDictionary>
-            <local:MultiValueConverter x:Key="MultiValueConverter" />
-        </ResourceDictionary>
-    </Window.Resources>
+
     <Grid>
-        <StackPanel Margin="10">
-            <StackPanel Orientation="Horizontal">
+        <Grid Margin="10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="1*" />
+                <RowDefinition Height="5*" />
+                <RowDefinition Height="1*" />
+                <RowDefinition Height="1*" />
+            </Grid.RowDefinitions>
+            <StackPanel Grid.Row="0" Orientation="Horizontal">
                 <TextBlock
-                    Width="50"
-                    Margin="0,0,10,0"
+                    Width="80"
+                    Margin="5,0,10,0"
                     VerticalAlignment="Center"
-                    Text=".net 版本: " />
+                    Text="当前.net 版本: " />
                 <TextBlock
-                    Width="120" VerticalAlignment="Center"
-                    Text="{Binding Path=Model.CurrentVersion}" ToolTip="{Binding Path=Text, RelativeSource={RelativeSource Self}}" />
+                    Width="165"
+                    VerticalAlignment="Center"
+                    d:Text="10.0.100-preview.2.25164.34"
+                    Text="{Binding Path=Model.CurrentVersion}"
+                    ToolTip="{Binding Path=Text, RelativeSource={RelativeSource Self}}" />
+                <TextBlock
+                    Width="70"
+                    Margin="10,0,10,0"
+                    VerticalAlignment="Center"
+                    Text="安装的SDK：" />
+                <ComboBox
+                    Width="165"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    ItemsSource="{Binding Path=Model.SdkVersions}"
+                    SelectedIndex="0">
+                    <d:ComboBox.ItemsSource>
+                        <x:Array xmlns:sys="clr-namespace:System;assembly=System.Runtime" Type="sys:String">
+                            <sys:String>10.0.100-preview.2.25164.34</sys:String>
+                        </x:Array>
+                    </d:ComboBox.ItemsSource>
+                </ComboBox>
+
                 <TextBlock
                     Width="50"
                     Margin="10,0,10,0"
                     VerticalAlignment="Center"
                     Text="语言包: " />
                 <ComboBox
-                    x:Name="comboBox1"
-                    Width="120"
-                    HorizontalAlignment="Left"
-                    VerticalAlignment="Bottom"
+                    Width="160"
+                    VerticalAlignment="Center"
+                    d:SelectedValue="Chinese (Traditional)"
                     ItemsSource="{Binding Path=Model.LanguageList}"
-                    SelectedIndex="0" />
+                    SelectedIndex="0"
+                    SelectedValue="{Binding Path=Model.CurrentLanguage}">
+                    <d:ComboBox.ItemsSource>
+                        <x:Array xmlns:sys="clr-namespace:System;assembly=System.Runtime" Type="sys:String">
+                            <sys:String>Chinese (Traditional)</sys:String>
+                        </x:Array>
+                    </d:ComboBox.ItemsSource>
+                </ComboBox>
             </StackPanel>
             <ListBox
-                Height="100"
+                x:Name="ListBox"
+                Grid.Row="1"
                 Margin="0,10"
-                IsSynchronizedWithCurrentItem="true"
+                d:ItemsSource="{d:SampleData ItemCount=5}"
                 ItemsSource="{Binding Model.Packs, Mode=TwoWay}"
-                SelectionMode="Extended">
+                SelectionMode="Single">
+                <!--<ListBox.ItemContainerStyle>
+                    <Style BasedOn="{StaticResource ListBoxItemBaseStyle}" TargetType="ListBoxItem">
+                        <Setter Property="ContextMenu">
+                            <Setter.Value>
+                                <ContextMenu DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ListBox}}">
+                                    <MenuItem
+                                        Command="{Binding PlacementTarget.DataContext.OpenDirectoryCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                        CommandParameter="{Binding Path=DataContext, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
+                                        Header="打开目录"/>
+                                </ContextMenu>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </ListBox.ItemContainerStyle>-->
+
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <!--  每个 ListBoxItem 显示的内容  -->
-                        <TextBlock Text="{Binding}">
-                            <!--  鼠标悬浮时显示 Title  -->
-                            <TextBlock.ToolTip>
-                                <ToolTip Content="{Binding}" />
-                            </TextBlock.ToolTip>
+                        <TextBlock DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ListBox}}" Text="{Binding Path=Content, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" ToolTip="{Binding Path=Text, RelativeSource={RelativeSource Mode=Self}}">
+                            <TextBlock.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem
+                                        Command="{Binding PlacementTarget.DataContext.OpenDirectoryCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                        CommandParameter="{Binding Path= PlacementTarget.Text, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                        Header="打开目录" />
+                                </ContextMenu>
+                            </TextBlock.ContextMenu>
                         </TextBlock>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
             <Button
-                Height="25"
-                Command="{Binding ApplyCommand}"
+                Grid.Row="2"
+                Height="30"
+                Margin="5,0,5,0"
+                HorizontalAlignment="Stretch"
+                Command="{Binding OpenDirectoryCommand}"
                 CommandParameter="{Binding SelectedValue, ElementName=comboBox1}"
                 Content="应用">
                 <!--<b:Interaction.Triggers>
@@ -80,12 +132,11 @@
                 </b:Interaction.Triggers>-->
             </Button>
             <ProgressBar
+                Grid.Row="3"
                 Height="20"
                 Margin="5,5"
                 Value="{Binding Model.DownloadProgress, Mode=TwoWay}" />
-        </StackPanel>
-
-
+        </Grid>
     </Grid>
 
     <b:Interaction.Triggers>
@@ -93,4 +144,5 @@
             <b:InvokeCommandAction Command="{Binding LoadedCommand}" />
         </b:EventTrigger>
     </b:Interaction.Triggers>
+
 </Window>
