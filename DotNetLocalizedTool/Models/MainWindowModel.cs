@@ -28,12 +28,14 @@ namespace DotNetLocalizedTool.Models
             set { _languageList = value; OnPropertyChanged(); }
         }
         [ObservableProperty]
-        private string _currentLanguage = "zh-CN";  // 当前选中的语言
+        private string _currentLanguage = "";  // 当前选中的语言
         private double _downloadProgress;  // 下载进度
         public double DownloadProgress
         {
             get => _downloadProgress;
             set { _downloadProgress = value; OnPropertyChanged(); }
         }
+        [ObservableProperty]
+        private bool _isDownloaded = true;  // 是否下载完成
     }
 }

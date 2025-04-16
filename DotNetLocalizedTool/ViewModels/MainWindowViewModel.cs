@@ -10,6 +10,7 @@ using System.Net.Http;
 using System.Windows;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
+using MessageBox = HandyControl.Controls.MessageBox;
 
 namespace DotNetLocalizedTool.ViewModels
 {
@@ -45,15 +46,20 @@ namespace DotNetLocalizedTool.ViewModels
 
                         foreach (var sdk in sdks)
                         {
-                            Model.SdkVersions.Add(sdk.Split(' ')[0]);
-                            Model.SdkVersions = new ObservableCollection<string>(Model.SdkVersions.Reverse());
+                            DispatcherHelper.CheckBeginInvokeOnUI(() =>
+                            {
+                                Model.SdkVersions.Add(sdk.Split(' ')[0]);
+                                Model.SdkVersions = new ObservableCollection<string>(Model.SdkVersions.Reverse());
+                            });
+                            
                         }
 
                         //Model.CurrentVersion = currentVersion;
 
                         //_languageLinkList = await GetLanguageLinkList();
                         //VersionSelectionChangedCommand.Execute(currentVersion);
-                        GetPackList();
+                        DispatcherHelper.CheckBeginInvokeOnUI(GetPackList);
+                        
                         await GetLanguageLinkList();
                     });
                     DialogHelper.CloseLoading();
@@ -70,11 +76,18 @@ namespace DotNetLocalizedTool.ViewModels
             {
                 return new AsyncRelayCommand<object>(async delegate (object? obj)
                 {
-                    var version = Model.CurrentVersion.Substring(0, 3);
-                    string? language = obj.ToString();
-                    if (language == null)
+                    Model.IsDownloaded = false;
+                    string version = "";
+                    string[] parts = Model.CurrentVersion.Split(['.'], StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length >= 2)
                     {
-                        MessageBox.Show("请选择语言");
+                        version = string.Join(".", parts.Take(2)); // 合并前两个元素
+                    }
+                    
+                    string language = Model.CurrentLanguage;
+                    if (string.IsNullOrWhiteSpace(language))
+                    {
+                        MessageBox.Show("请选择语言", "警告", MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
                     }
                     string url;
@@ -85,7 +98,7 @@ namespace DotNetLocalizedTool.ViewModels
                     else
                     {
                         var v = _languageLinkList.Keys.ToList();
-                        url = _languageLinkList[v[^1]][language];
+                        url = _languageLinkList[v[0]][language];
                     }
 
 
@@ -94,7 +107,7 @@ namespace DotNetLocalizedTool.ViewModels
                     fileName = Path.GetFileNameWithoutExtension(url);
 
                     // 下载
-                    ThreadPool.QueueUserWorkItem(async state =>
+                    ThreadPool.QueueUserWorkItem(async (state) =>
                     {
                         IProgress<HttpDownloadProgress> progress = new Progress<HttpDownloadProgress>(progress =>
                         {
@@ -110,7 +123,12 @@ namespace DotNetLocalizedTool.ViewModels
                                 // 覆盖
                                 CopyDirectory(fileName);
                                 DeleteDirectory(fileName);
-                                MessageBox.Show("完成");
+                                MessageBox.Show("完成", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                                Model.IsDownloaded = true;
+                                DispatcherHelper.CheckBeginInvokeOnUI(() =>
+                                {
+                                    Model.DownloadProgress = 0;
+                                });
                             }
                         });
                         await new HttpClient().GetByteArrayAsync(url, path, progress, CancellationToken.None);
@@ -197,6 +215,7 @@ namespace DotNetLocalizedTool.ViewModels
             {
                 var v = _languageLinkList.Keys.ToList();
                 Model.LanguageList = _languageLinkList[v[^1]].Keys.ToList();
+                Model.LanguageList.Reverse();
             }
         }
 
@@ -206,15 +225,18 @@ namespace DotNetLocalizedTool.ViewModels
             var dir1 = new DirectoryInfo(path).GetDirectories()[0].FullName;
             path = Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, fileName, fileName, "Microsoft.WindowsDesktop.App.Ref");
             var dir2 = new DirectoryInfo(path).GetDirectories()[0].FullName;
+            foreach (var pack in Model.Packs)
+            {
+                if (pack.Contains("Microsoft.NETCore.App.Ref") && !System.IO.Directory.Exists(Path.Combine(pack, Path.GetFileName(dir1))))
+                {
+                    DirectoryHelper.CopyDirectory(dir1,pack);
+                }
+                if (pack.Contains("Microsoft.WindowsDesktop.App.Ref") && !System.IO.Directory.Exists(Path.Combine(pack, Path.GetFileName(dir2))))
+                {
+                    DirectoryHelper.CopyDirectory(dir2, pack);
+                }
+            }
 
-            if (!System.IO.Directory.Exists(Path.Combine(Model.Packs[0], Path.GetFileName(dir1))))
-            {
-                DirectoryHelper.CopyDirectory(dir1, Model.Packs[0]);
-            }
-            if (!System.IO.Directory.Exists(Path.Combine(Model.Packs[1], Path.GetFileName(dir2))))
-            {
-                DirectoryHelper.CopyDirectory(dir2, Model.Packs[1]);
-            }
         }
 
         private void DeleteDirectory(string fileName)
